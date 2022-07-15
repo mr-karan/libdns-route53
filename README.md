@@ -1,6 +1,18 @@
 Route53 for `libdns`
 =======================
 
+# Why a fork
+
+This is a fork of https://github.com/libdns/route53. Main changes here:
+
+- Fallback to AWS SDK to handle the config. Fixes https://github.com/libdns/route53/issues/13
+- Configurable option to wait for records to propogate to all Route53 servers. Fixes https://github.com/libdns/route53/issues/14
+- Add a `New()` method for initialising the provider instead of calling `init` in each operation.
+
+I plan to continue supporting this forked version.
+
+---
+
 [![godoc reference](https://img.shields.io/badge/godoc-reference-blue.svg)](https://pkg.go.dev/github.com/libdns/route53)
 
 This package implements the [libdns interfaces](https://github.com/libdns/libdns) for AWS [Route53](https://aws.amazon.com/route53/).
