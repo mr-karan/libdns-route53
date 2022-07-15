@@ -4,50 +4,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"strconv"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/aws/retry"
-	"github.com/aws/aws-sdk-go-v2/config"
-	"github.com/aws/aws-sdk-go-v2/credentials"
 	r53 "github.com/aws/aws-sdk-go-v2/service/route53"
 	"github.com/aws/aws-sdk-go-v2/service/route53/types"
 	"github.com/libdns/libdns"
 )
-
-// init initializes the AWS client
-func (p *Provider) init(ctx context.Context) {
-	if p.client != nil {
-		return
-	}
-
-	if p.MaxRetries == 0 {
-		p.MaxRetries = 5
-	}
-	if p.Region == "" {
-		p.Region = "us-east-1"
-	}
-	if p.MaxWaitDur == 0 {
-		p.MaxWaitDur = time.Minute
-	}
-
-	cfg, err := config.LoadDefaultConfig(ctx,
-		config.WithSharedConfigProfile(p.AWSProfile),
-		config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(p.AccessKeyId, p.SecretAccessKey, p.Token)),
-		config.WithRegion(p.Region),
-		config.WithRetryer(func() aws.Retryer {
-			return retry.AddWithMaxAttempts(retry.NewStandard(), p.MaxRetries)
-		}),
-	)
-
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	p.client = r53.NewFromConfig(cfg)
-}
 
 func (p *Provider) getRecords(ctx context.Context, zoneID string, zone string) ([]libdns.Record, error) {
 	getRecordsInput := &r53.ListResourceRecordSetsInput{
