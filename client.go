@@ -210,15 +210,16 @@ func (p *Provider) applyChange(ctx context.Context, input *r53.ChangeResourceRec
 		}
 	}
 
-	changeInput := &r53.GetChangeInput{
-		Id: changeResult.ChangeInfo.Id,
-	}
-
 	// Wait for the RecordSetChange status to be "INSYNC"
-	waiter := r53.NewResourceRecordSetsChangedWaiter(p.client)
-	err = waiter.Wait(ctx, changeInput, p.MaxWaitDur)
-	if err != nil {
-		return err
+	if p.opt.WaitForPropogation {
+		changeInput := &r53.GetChangeInput{
+			Id: changeResult.ChangeInfo.Id,
+		}
+		waiter := r53.NewResourceRecordSetsChangedWaiter(p.client)
+		err = waiter.Wait(ctx, changeInput, p.opt.MaxWaitDur)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
