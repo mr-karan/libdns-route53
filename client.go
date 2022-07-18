@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -96,20 +97,17 @@ func (p *Provider) createRecord(ctx context.Context, zoneID string, record libdn
 		record.Value = strconv.Quote(record.Value)
 	}
 
+	rrSets := prepareRecords(record.Value)
 	createInput := &r53.ChangeResourceRecordSetsInput{
 		ChangeBatch: &types.ChangeBatch{
 			Changes: []types.Change{
 				{
 					Action: types.ChangeActionCreate,
 					ResourceRecordSet: &types.ResourceRecordSet{
-						Name: aws.String(libdns.AbsoluteName(record.Name, zone)),
-						ResourceRecords: []types.ResourceRecord{
-							{
-								Value: aws.String(record.Value),
-							},
-						},
-						TTL:  aws.Int64(int64(record.TTL.Seconds())),
-						Type: types.RRType(record.Type),
+						Name:            aws.String(libdns.AbsoluteName(record.Name, zone)),
+						ResourceRecords: rrSets,
+						TTL:             aws.Int64(int64(record.TTL.Seconds())),
+						Type:            types.RRType(record.Type),
 					},
 				},
 			},
@@ -131,20 +129,17 @@ func (p *Provider) updateRecord(ctx context.Context, zoneID string, record libdn
 		record.Value = strconv.Quote(record.Value)
 	}
 
+	rrSets := prepareRecords(record.Value)
 	updateInput := &r53.ChangeResourceRecordSetsInput{
 		ChangeBatch: &types.ChangeBatch{
 			Changes: []types.Change{
 				{
 					Action: types.ChangeActionUpsert,
 					ResourceRecordSet: &types.ResourceRecordSet{
-						Name: aws.String(libdns.AbsoluteName(record.Name, zone)),
-						ResourceRecords: []types.ResourceRecord{
-							{
-								Value: aws.String(record.Value),
-							},
-						},
-						TTL:  aws.Int64(int64(record.TTL.Seconds())),
-						Type: types.RRType(record.Type),
+						Name:            aws.String(libdns.AbsoluteName(record.Name, zone)),
+						ResourceRecords: rrSets,
+						TTL:             aws.Int64(int64(record.TTL.Seconds())),
+						Type:            types.RRType(record.Type),
 					},
 				},
 			},
@@ -161,20 +156,17 @@ func (p *Provider) updateRecord(ctx context.Context, zoneID string, record libdn
 }
 
 func (p *Provider) deleteRecord(ctx context.Context, zoneID string, record libdns.Record, zone string) (libdns.Record, error) {
+	rrSets := prepareRecords(record.Value)
 	deleteInput := &r53.ChangeResourceRecordSetsInput{
 		ChangeBatch: &types.ChangeBatch{
 			Changes: []types.Change{
 				{
 					Action: types.ChangeActionDelete,
 					ResourceRecordSet: &types.ResourceRecordSet{
-						Name: aws.String(libdns.AbsoluteName(record.Name, zone)),
-						ResourceRecords: []types.ResourceRecord{
-							{
-								Value: aws.String(record.Value),
-							},
-						},
-						TTL:  aws.Int64(int64(record.TTL.Seconds())),
-						Type: types.RRType(record.Type),
+						Name:            aws.String(libdns.AbsoluteName(record.Name, zone)),
+						ResourceRecords: rrSets,
+						TTL:             aws.Int64(int64(record.TTL.Seconds())),
+						Type:            types.RRType(record.Type),
 					},
 				},
 			},
@@ -223,4 +215,19 @@ func (p *Provider) applyChange(ctx context.Context, input *r53.ChangeResourceRec
 	}
 
 	return nil
+}
+
+// prepareRecords takes a `record.Value` and splits them with `,`
+// to create individual Records. This is required by AWS R53 to add
+// multiple IPs to a single record.
+func prepareRecords(value string) []types.ResourceRecord {
+	values := strings.Split(value, ",")
+	rrSets := []types.ResourceRecord{}
+	for _, v := range values {
+		rrSets = append(rrSets, types.ResourceRecord{
+			Value: aws.String(v),
+		})
+	}
+
+	return rrSets
 }
