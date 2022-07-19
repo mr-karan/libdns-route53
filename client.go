@@ -50,7 +50,7 @@ func (p *Provider) getRecords(ctx context.Context, zoneID string, zone string) (
 	for _, rrset := range recordSets {
 		for _, rrsetRecord := range rrset.ResourceRecords {
 			record := libdns.Record{
-				Name:  libdns.AbsoluteName(*rrset.Name, zone),
+				Name:  *rrset.Name,
 				Value: *rrsetRecord.Value,
 				Type:  string(rrset.Type),
 				TTL:   time.Duration(*rrset.TTL) * time.Second,
