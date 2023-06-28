@@ -3,13 +3,63 @@ Route53 for `libdns`
 
 # Why a fork
 
-This is a fork of https://github.com/libdns/route53. Main changes here:
+This is a fork of https://github.com/libdns/route53. Main changes are in the following areas:
 
 - Fallback to AWS SDK to handle the config. Fixes https://github.com/libdns/route53/issues/13
 - Configurable option to wait for records to propogate to all Route53 servers. Fixes https://github.com/libdns/route53/issues/14
 - Add a `New()` method for initialising the provider instead of calling `init` in each operation.
+- Easily set multiple IPs in A/AAAA records. Not possible in the original repo.
 
-I plan to continue supporting this forked version.
+This is exclusively and specifically designed for integrating with https://github.com/mr-karan/nomad-external-dns/. If you're looking for a general purpose Route53 provider, please use the original repo.
+
+## Example
+
+```go
+package main
+
+import (
+	"context"
+	"fmt"
+	"log"
+
+	"github.com/libdns/libdns"
+	route53 "github.com/mr-karan/libdns-route53"
+)
+
+func main() {
+	// Create a new AWS Route53 provider. The region is explicitly set to "ap-south-1".
+	p, err := route53.NewProvider(context.Background(), route53.Opt{Region: "ap-south-1"})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	ctx := context.Background()
+
+	var (
+		// Set the IP address to be assigned to the dummy record
+		ip = "192.168.0.1"
+		// Set the zone to be used. This is the domain name for which the DNS records will be set.
+		zone = "test.internal."
+	)
+
+	// Use the provider to set a record on Route53. The libdns.Record struct describes a DNS record.
+	// The name, value, and type are set for this record.
+	_, err = p.SetRecords(ctx, zone, []libdns.Record{
+		{
+			Name:  "dummy", // The record's name
+			Value: ip,      // The record's value, in this case an IP address
+			Type:  "A",     // The record type, A for Address record
+		},
+	})
+
+	if err != nil {
+		log.Fatalln(err)
+	}
+	fmt.Println("Set record with IP:", ip)
+}
+```
+
+For a more complete example, see [the example directory](./example).
 
 ---
 
